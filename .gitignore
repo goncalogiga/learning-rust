@@ -1,0 +1,22 @@
+# Build output
+target/
+
+# Backup files from rustfmt
+**/*.rs.bk
+
+# Debug symbols (MSVC)
+*.pdb
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Compiled output of standalone rustc builds
+/hello_world
