@@ -1,0 +1,15 @@
+# A morning at the coffee shop. Run it with: cargo run < requests.txt
+GET /health
+POST /orders latte large
+POST /orders espresso small
+POST /orders tea medium
+POST /orders mojito large
+GET /orders
+GET /orders/2
+GET /orders/42
+POST /orders/2/ready 1
+DELETE /orders/2
+DELETE /orders/3
+DELETE /orders/3
+GET /stats
+GET /orders
