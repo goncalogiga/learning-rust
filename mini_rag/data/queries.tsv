@@ -1,0 +1,48 @@
+# Labelled queries for `cargo run -- eval`.
+# Format: <query><TAB><id of the document that answers it>
+#
+# Like real users, these queries are sloppy: typos, British spellings, other word forms
+# ("quantised", "evaluating") and paraphrases that share few words with the answer.
+
+query key and value vectors and the softmax over scores	attention
+why is attention quadratic in sequence length	attention
+what is byte pair encoding	tokenization
+why can't models count the letters in a word	tokenization
+tokenisation into subwords	tokenization
+how is cosine similarity computed	embeddings
+normalising embedings to unit length	embeddings
+contrastive training of text embedding models	embeddings
+run a big model on a laptop with 4-bit integer weights	quantization
+what do GPTQ and AWQ do	quantization
+how much accuracy do quantised models lose	quantization
+give the model access to private documents before answering	rag
+why do retrieval augmented pipelines fail	rag
+train a LoRA adapter	fine_tuning
+finetuning with low rank adapters	fine_tuning
+should I teach the model new facts by training on them	fine_tuning
+what does a higher temprature do to the output	sampling
+nucleus sampling top-p	sampling
+greedy decoding	sampling
+the model ignores information in the middle of a long prompt	context_window
+maximum number of tokens the model can see at once	context_window
+model invents fake citations and paper titles	hallucination
+hallucinating answers about recent events	hallucination
+recall at k and mean reciprocal rank	evaluation
+evaluating generated answers with an LLM judge	evaluation
+few-shot examples and chain of thought	prompt_engineering
+prompting tips for reliable outputs	prompt_engineering
+why is generation slow without caching	kv_cache
+grouped-query attention and paged attention	kv_cache
+routing tokens to experts	mixture_of_experts
+load balancing loss for experts	mixture_of_experts
+reward model trained on human preference comparisons	rlhf
+optimising a model for what people prefer	rlhf
+HNSW approximate nearest neighbour index	vector_databases
+filtering nearest neighbours by metadata	vector_databases
+how big should a chunk be	chunking
+splitting documents on headings and paragraphs with overlap	chunking
+inverse document frequency and length normalisation	bm25
+keyword search misses synonyms like automobile	bm25
+reciprocal rank fusion	hybrid_search
+merging two ranked lists with different score scales	hybrid_search
+reranking the fused candidates	hybrid_search

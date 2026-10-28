@@ -243,12 +243,7 @@ impl Shop {
 
     // Like `find_order` but gives you a *mutable* reference so you can change the order.
     fn find_order_mut(&mut self, id: u32) -> Option<&mut Order> {
-        for order in &mut self.orders {
-            if order.id == id {
-                return Some(order);
-            }
-        }
-        None
+        self.orders.iter_mut().find(|order| order.id == id)
     }
 
     // Worked example: read this before Mission 6.
@@ -264,8 +259,8 @@ impl Shop {
                 Response::Ok(format!("order {id} is ready at counter {counter}"))
             }
             // Pull the value out of the variant and give it a new name (`c`) in one step
-            OrderStatus::Ready { counter: c } => {
-                Response::Conflict(format!("order {id} is already ready at counter {c}"))
+            OrderStatus::Ready { counter } => {
+                Response::Conflict(format!("order {id} is already ready at counter {counter}"))
             }
             OrderStatus::Cancelled => Response::Conflict(format!("order {id} was cancelled")),
         }
@@ -281,27 +276,65 @@ impl Shop {
 
     // MISSION 5: return the order with this id, or None.
     fn find_order(&self, id: u32) -> Option<&Order> {
-        todo!("Mission 5")
+        self.orders.iter().find(|order| order.id == id)
     }
 
     // MISSION 5: Ok(summary) if the order exists, NotFound otherwise.
     fn get_order(&self, id: u32) -> Response {
-        todo!("Mission 5")
+        let Some(order) = self.find_order(id) else {
+            return Response::NotFound;
+        };
+
+        Response::Ok(order.summary())
     }
 
     // MISSION 6: cancel an order. See the README for the rules.
     fn cancel_order(&mut self, id: u32) -> Response {
-        todo!("Mission 6")
+        let Some(order) = self.find_order_mut(id) else {
+            return Response::NotFound;
+        };
+
+        match order.status {
+            OrderStatus::Pending => {
+                // Cancel pending order
+                order.status = OrderStatus::Cancelled;
+                Response::NoContent
+            }
+
+            OrderStatus::Ready { counter } => {
+                Response::Conflict(format!("order {id} is already made, too late to cancel"))
+            }
+
+            OrderStatus::Cancelled => {
+                Response::Conflict(format!("order {id} is already cancelled"))
+            }
+        }
     }
 
     // MISSION 7: the router. Send each Route to the method that handles it.
     fn handle(&mut self, route: Route) -> Response {
-        todo!("Mission 7")
+        match route {
+            Route::Health => Response::Ok(String::from("ok")),
+            Route::Stats => self.stats(),
+            Route::ListOrders => self.list_orders(),
+            Route::GetOrder(id) => self.get_order(id),
+            Route::CreateOrder { drink, size } => self.create_order(drink, size),
+            Route::CancelOrder(id) => self.cancel_order(id),
+            Route::MarkReady { id, counter } => self.mark_ready(id, counter),
+        }
     }
 
     // MISSION 8: how many orders are Ready? Use `if let`.
     fn ready_count(&self) -> usize {
-        todo!("Mission 8")
+        let mut cnt = 0;
+
+        for order in self.orders.iter() {
+            if let OrderStatus::Ready { .. } = order.status {
+                cnt += 1;
+            }
+        }
+
+        cnt
     }
 }
 
