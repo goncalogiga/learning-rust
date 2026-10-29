@@ -20,7 +20,16 @@ impl<'a, E: Embedder> VectorIndex<'a, E> {
     // MISSION 9a: embed every chunk (use `chunk.searchable_text()`) and store the results.
     // `chunks` is a slice; `chunks.to_vec()` copies it into a Vec (cheap, Chunk is Copy).
     pub fn build(embedder: E, chunks: &[Chunk<'a>]) -> VectorIndex<'a, E> {
-        todo!("Mission 9")
+        let vectors = chunks
+            .iter()
+            .map(|c| embedder.embed(&c.searchable_text()))
+            .collect();
+
+        Self {
+            embedder,
+            chunks: chunks.to_vec(),
+            vectors,
+        }
     }
 }
 
@@ -37,7 +46,33 @@ impl<'a, E: Embedder> Retriever for VectorIndex<'a, E> {
     //    Keep only chunks with a score above 0.0.
     // 3. Use `top_k` to keep the best `k`, then turn each `(chunk, score)` into a `Hit`.
     fn search(&self, query: &str, k: usize) -> Vec<Hit<'_>> {
-        todo!("Mission 9")
+        let mut hits = Vec::new();
+        let mut best = Vec::new();
+        let query_vector = self.embedder.embed(query);
+
+        for vector in &self.vectors {
+            let score = cosine(&query_vector, vector);
+
+            if score > 0.0 {
+                best.push((score, vector));
+            }
+        }
+
+        best.sort_by(|a, b| b.0.total_cmp(&a.0));
+
+        for (i, b) in best.iter().enumerate() {
+            if i > k {
+                break;
+            }
+            
+            // TODO : HERE
+            hits.push(Hit {
+                chunk: Chunk { },
+                score: b.0,
+            })
+        }
+
+        hits
     }
 }
 

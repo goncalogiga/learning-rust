@@ -179,7 +179,19 @@ impl Corpus {
     // The return type is `Vec<Chunk<'_>>`: the chunks borrow from `self`. Elision rule 1 gives
     // `&self` a lifetime, and rule 3 hands it to the output.
     pub fn chunks(&self) -> Vec<Chunk<'_>> {
-        todo!("Mission 5")
+        let mut chunks = Vec::new();
+
+        for doc in &self.docs {
+            for text in paragraphs(&doc.body) {
+                chunks.push(Chunk {
+                    id: chunks.len(),
+                    doc,
+                    text,
+                });
+            }
+        }
+
+        chunks
     }
 
     // The document with this id, if there is one. (`|doc| ...` is a closure, Chapter 13.)

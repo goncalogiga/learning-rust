@@ -2,6 +2,8 @@
 //  Missions 4, 5 and 6: working with text (Chapter 8.2 and Chapter 10.3)
 // ============================================================================
 
+use std::collections::HashSet;
+
 // MISSION 4: split text into lowercase words.
 //
 //   "Self-attention costs O(n²)!"  ->  ["self", "attention", "costs", "o", "n²"]
@@ -11,7 +13,22 @@
 // returns an iterator because some characters lowercase to more than one character, so push
 // them all with a `for` loop.
 pub fn tokenize(text: &str) -> Vec<String> {
-    todo!("Mission 4")
+    let mut tokens = Vec::new();
+    let mut word = String::new();
+
+    for c in text.chars() {
+        if c.is_alphanumeric() {
+            word.extend(c.to_lowercase());
+        } else if !word.is_empty() {
+            tokens.push(std::mem::take(&mut word));
+        }
+    }
+
+    if !word.is_empty() {
+        tokens.push(word)
+    }
+
+    tokens
 }
 
 // Very common words that carry no meaning on their own. Without this list, a query like
@@ -34,7 +51,10 @@ pub fn is_stopword(word: &str) -> bool {
 //
 // BM25, the embedders and `best_sentence` all use this.
 pub fn content_words(text: &str) -> Vec<String> {
-    todo!("Mission 4")
+    tokenize(text)
+        .into_iter()
+        .filter(|t| !is_stopword(t))
+        .collect()
 }
 
 // MISSION 5a: split a document body into paragraphs.
@@ -45,7 +65,10 @@ pub fn content_words(text: &str) -> Vec<String> {
 // There are no lifetime annotations on this signature, yet the compiler knows the output
 // borrows from `text`. Which elision rule is that?
 pub fn paragraphs(text: &str) -> Vec<&str> {
-    todo!("Mission 5")
+    text.split("\n\n")
+        .map(str::trim)
+        .filter(|p| !p.is_empty())
+        .collect()
 }
 
 // MISSION 6: find the sentence in `chunk` that best matches `query`, to show as a snippet.
@@ -58,7 +81,25 @@ pub fn paragraphs(text: &str) -> Vec<&str> {
 //
 // Part 2 of this mission is about the lifetimes in this signature. See the README.
 pub fn best_sentence<'a>(chunk: &'a str, query: &'a str) -> &'a str {
-    todo!("Mission 6")
+    let words_set = |text| content_words(text).into_iter().collect::<HashSet<_>>();
+
+    let sentences: Vec<&str> = chunk.split_inclusive(". ").map(str::trim).collect();
+    let query_words = words_set(query);
+
+    let mut best_idx = 0;
+    let mut best_score = 0;
+
+    for (idx, sentence) in sentences.iter().enumerate() {
+        let sentence_words = words_set(sentence);
+        let score = query_words.intersection(&sentence_words).count();
+
+        if score > best_score {
+            best_score = score;
+            best_idx = idx;
+        }
+    }
+
+    sentences[best_idx]
 }
 
 #[cfg(test)]

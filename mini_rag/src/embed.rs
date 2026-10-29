@@ -8,6 +8,7 @@
 // with a real model, and nothing else in the code has to change.
 
 use crate::text::content_words;
+use std::collections::HashMap;
 
 pub trait Embedder {
     // Turn text into a vector. Every call must return a vector of the same length.
@@ -82,6 +83,12 @@ impl Default for CharNgramEmbedder {
     }
 }
 
+impl CharNgramEmbedder {
+    fn ngram_word(&self, word: &str) -> Vec<f32> {
+        todo!()
+    }
+}
+
 // MISSION 8a: implement `Embedder` for `CharNgramEmbedder`. Copy the shape of WordEmbedder.
 //
 // For each word from `content_words(text)`:
@@ -94,8 +101,27 @@ impl Default for CharNgramEmbedder {
 // Finally, normalize the vector.
 impl Embedder for CharNgramEmbedder {
     fn embed(&self, text: &str) -> Vec<f32> {
-        todo!("Mission 8")
+        let mut embedding: Vec<f32> = vec![0.0; self.dims];
+
+        for word in content_words(text) {
+            let chars: Vec<char> = format!("#{word}#").chars().collect();
+
+            for window in chars.windows(self.n) {
+                let ngram: String = window.iter().collect();
+                let slot = (fnv1a(&ngram) % self.dims as u64) as usize;
+                embedding[slot] += 1.0;
+            }
+        }
+
+        let norm_factor = embedding.iter().map(|x| x.powi(2)).sum::<f32>().sqrt();
+        let norm_factor = if norm_factor == 0.0 { 1.0 } else { norm_factor };
+
+        embedding.into_iter().map(|x| x / norm_factor).collect()
     }
+}
+
+fn dot(a: &[f32], b: &[f32]) -> f32 {
+    a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
 }
 
 // MISSION 8b: cosine similarity between two vectors of the same length.
@@ -106,7 +132,13 @@ impl Embedder for CharNgramEmbedder {
 // It is 1.0 for vectors pointing the same way, and 0.0 for vectors that share nothing.
 // If either vector has length 0, return 0.0 (dividing by zero would give NaN).
 pub fn cosine(a: &[f32], b: &[f32]) -> f32 {
-    todo!("Mission 8")
+    let length = |x: &[f32]| dot(x, x).sqrt();
+
+    if length(a) * length(b) == 0.0 {
+        0.0
+    } else {
+        dot(a, b) / (length(a) * length(b))
+    }
 }
 
 #[cfg(test)]

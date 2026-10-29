@@ -29,7 +29,7 @@ pub trait Retriever {
     // without writing it. Return the single best hit, or `None` if there are no hits.
     // Call `self.search(...)`: a default method can use the trait's other methods.
     fn best(&self, query: &str) -> Option<Hit<'_>> {
-        todo!("Mission 7")
+        self.search(query, 1).into_iter().next()
     }
 }
 
@@ -59,7 +59,9 @@ impl<R: Retriever> Retriever for &R {
 // `T` can be anything: this function never looks at it, so it needs no trait bounds.
 // Before you start, read the README's "try this" about `.sort()`.
 pub fn top_k<T>(mut scored: Vec<(T, f32)>, k: usize) -> Vec<(T, f32)> {
-    todo!("Mission 7")
+    scored.sort_by(|a, b| b.1.total_cmp(&a.1)); // Reversed order a <-> b
+    scored.truncate(k);
+    scored
 }
 
 #[cfg(test)]
