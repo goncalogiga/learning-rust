@@ -61,7 +61,29 @@ impl Document {
     // - The body is everything after the first line, with `.trim()` applied. If the body is
     //   empty, return RagError::Parse { file: "<id>.md", line: 2, reason: "document has no body" }.
     pub fn parse(id: &str, text: &str) -> Result<Document, RagError> {
-        todo!("Mission 2")
+        let parse_err = |line, reason: &str| RagError::Parse {
+            file: format!("{id}.md"),
+            line,
+            reason: reason.into(),
+        };
+
+        let (first_line, rest) = text.split_once('\n').unwrap_or((text, ""));
+
+        let title = first_line
+            .strip_prefix("# ")
+            .map(str::trim)
+            .filter(|t| !t.is_empty())
+            .ok_or_else(|| parse_err(1, "expected a '# Title' line"))?;
+
+        let body = Some(rest.trim())
+            .filter(|t| !t.is_empty())
+            .ok_or_else(|| parse_err(2, "document has no body"))?;
+
+        Ok(Self {
+            id: id.into(),
+            title: title.into(),
+            body: body.into(),
+        })
     }
 }
 
@@ -72,13 +94,41 @@ impl Document {
 // - A line without a tab, or with an empty query or doc id, is an error:
 //   RagError::Parse { file, line: <1-based line number>, reason: "expected <query><TAB><doc id>" }
 pub fn parse_queries(file: &str, text: &str) -> Result<Vec<LabeledQuery>, RagError> {
-    todo!("Mission 2")
+    let mut queries = Vec::new();
+
+    for (i, line) in text.lines().enumerate() {
+        let line = line.trim();
+
+        if line.is_empty() || line.starts_with('#') {
+            continue;
+        }
+
+        let (query, doc_id) = line
+            .split_once('\t')
+            .map(|(q, d)| (q.trim(), d.trim()))
+            .filter(|(q, d)| !q.is_empty() && !d.is_empty())
+            .ok_or_else(|| RagError::Parse {
+                file: file.into(),
+                line: i + 1,
+                reason: "expected <query><TAB><doc id>".into(),
+            })?;
+
+        queries.push(LabeledQuery {
+            query: query.into(),
+            relevant: doc_id.into(),
+        });
+    }
+
+    Ok(queries)
 }
 
 // MISSION 3b: read a queries file from disk and parse it with `parse_queries`.
 // Use `path.display().to_string()` as the file name for error messages.
 pub fn load_queries(path: &Path) -> Result<Vec<LabeledQuery>, RagError> {
-    todo!("Mission 3")
+    let file = path.display().to_string();
+    let text = fs::read_to_string(path)?;
+
+    parse_queries(&file, &text)
 }
 
 impl Corpus {
@@ -93,7 +143,32 @@ impl Corpus {
     // - Docs must be sorted by id (directory order is random): `docs.sort_by(...)`, see the hint.
     // - No `.md` files at all: return RagError::EmptyCorpus(dir.to_path_buf()).
     pub fn load(dir: &Path) -> Result<Corpus, RagError> {
-        todo!("Mission 3")
+        let mut docs = Vec::new();
+
+        for entry in fs::read_dir(dir)? {
+            let path = entry?.path();
+
+            if !path.extension().is_some_and(|e| e == "md") {
+                continue;
+            }
+
+            let id = path
+                .file_stem()
+                .expect("a path with a .md extension has a file stem")
+                .to_string_lossy();
+
+            let text = fs::read_to_string(&path)?;
+
+            docs.push(Document::parse(&id, &text)?);
+        }
+
+        if docs.is_empty() {
+            return Err(RagError::EmptyCorpus(dir.to_path_buf()));
+        }
+
+        docs.sort_by(|a, b| a.id.cmp(&b.id));
+
+        Ok(Corpus { docs })
     }
 
     // MISSION 5b: cut every document into chunks, one per paragraph (use `paragraphs`).

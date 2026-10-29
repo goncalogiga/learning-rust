@@ -26,14 +26,18 @@ pub enum RagError {
 //   EmptyCorpus(dir)           -> "no .md files in <dir>"   (use `dir.display()`)
 impl fmt::Display for RagError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        todo!("Mission 1")
+        match self {
+            RagError::Io(e) => write!(f, "io error: {}", e),
+            RagError::Parse { file, line, reason } => write!(f, "{}:{}: {}", file, line, reason),
+            RagError::EmptyCorpus(dir) => write!(f, "no .md files in {}", dir.display()),
+        }
     }
 }
 
 // MISSION 1b: let `?` turn an `io::Error` into a `RagError` automatically.
 impl From<io::Error> for RagError {
     fn from(e: io::Error) -> RagError {
-        todo!("Mission 1")
+        RagError::Io(e)
     }
 }
 
