@@ -17,6 +17,15 @@ pub struct Hybrid<A, B> {
     second: B,
 }
 
+fn ranking_map<'r, R: Retriever>(retriever: &'r R, query: &str, n: usize) -> HashMap<usize, usize> {
+    retriever
+        .search(query, n)
+        .into_iter()
+        .enumerate()
+        .map(|(pos, hit)| (hit.chunk.id, pos))
+        .collect()
+}
+
 impl<A: Retriever, B: Retriever> Hybrid<A, B> {
     pub fn new(first: A, second: B) -> Hybrid<A, B> {
         Hybrid { first, second }
@@ -26,7 +35,7 @@ impl<A: Retriever, B: Retriever> Hybrid<A, B> {
 impl<A: Retriever, B: Retriever> Retriever for Hybrid<A, B> {
     // MISSION 11a: "hybrid(<first name>+<second name>)", e.g. "hybrid(bm25+vector)".
     fn name(&self) -> String {
-        todo!("Mission 11")
+        format!("hybrid({}+{})", self.first.name(), self.second.name())
     }
 
     // MISSION 11b: Reciprocal Rank Fusion.
@@ -44,7 +53,28 @@ impl<A: Retriever, B: Retriever> Retriever for Hybrid<A, B> {
     // A HashMap's iteration order is random, so ties would come out in a different order on
     // every run. The Vec keeps the order in which chunks were first seen.)
     fn search(&self, query: &str, k: usize) -> Vec<Hit<'_>> {
-        todo!("Mission 11")
+        let n = k.max(20);
+        let mut fused: Vec<(Chunk, f32)> = Vec::new();
+        let mut index_of: HashMap<usize, usize> = HashMap::new();
+
+        for hits in [self.first.search(query, n), self.second.search(query, n)] {
+            for (pos, hit) in hits.into_iter().enumerate() {
+                let rank = pos + 1;
+                let points = 1.0 / (RRF_K + rank as f32);
+
+                if let Some(&i) = index_of.get(&hit.chunk.id) {
+                    fused[i].1 += points;
+                } else {
+                    index_of.insert(hit.chunk.id, fused.len());
+                    fused.push((hit.chunk, points));
+                }
+            }
+        }
+
+        top_k(fused, k)
+            .into_iter()
+            .map(|(chunk, score)| Hit { chunk, score })
+            .collect()
     }
 }
 

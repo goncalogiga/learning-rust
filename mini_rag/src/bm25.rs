@@ -31,12 +31,45 @@ impl<'a> Bm25Index<'a> {
     // Careful with `doc_freq`: a word that appears 3 times in one chunk only adds 1.
     // Tip: fill the chunk's `term_counts` map first, then loop over its keys.
     pub fn build(chunks: &[Chunk<'a>]) -> Bm25Index<'a> {
-        todo!("Mission 10")
+        let mut term_counts = Vec::with_capacity(chunks.len());
+        let mut lengths = Vec::with_capacity(chunks.len());
+        let mut doc_freq = HashMap::new();
+
+        for chunk in chunks {
+            let mut chunk_term_counts = HashMap::new();
+            let words = content_words(&chunk.searchable_text());
+            let length = words.len();
+
+            for word in words {
+                *chunk_term_counts.entry(word).or_insert(0) += 1;
+            }
+
+            for term in chunk_term_counts.keys() {
+                *doc_freq.entry(term.clone()).or_insert(0) += 1;
+            }
+
+            term_counts.push(chunk_term_counts);
+            lengths.push(length);
+        }
+
+        let avg_len = if lengths.is_empty() {
+            0.0
+        } else {
+            lengths.iter().sum::<usize>() as f32 / lengths.len() as f32
+        };
+
+        Bm25Index {
+            chunks: Vec::from(chunks),
+            term_counts,
+            lengths,
+            doc_freq,
+            avg_len,
+        }
     }
 
     // MISSION 10b: how many chunks contain `term` (0 if none).
     pub fn doc_freq(&self, term: &str) -> usize {
-        todo!("Mission 10")
+        self.doc_freq.get(term).copied().unwrap_or(0)
     }
 
     pub fn avg_len(&self) -> f32 {
@@ -51,7 +84,10 @@ impl<'a> Bm25Index<'a> {
     // where N is the number of chunks and df is `self.doc_freq(term)`.
     // Convert the counts with `as f32`, and use `f32::ln(x)` (or `x.ln()`).
     pub fn idf(&self, term: &str) -> f32 {
-        todo!("Mission 10")
+        let df = self.doc_freq(term) as f32;
+        let n = self.chunks.len() as f32;
+
+        f32::ln((n - df + 0.5) / (df + 0.5) + 1.0)
     }
 }
 
@@ -69,7 +105,32 @@ impl Retriever for Bm25Index<'_> {
     //
     // Keep only chunks with a score above 0.0, and use `top_k` like in Mission 9.
     fn search(&self, query: &str, k: usize) -> Vec<Hit<'_>> {
-        todo!("Mission 10")
+        let query_words = content_words(query);
+        let mut scores = Vec::new();
+
+        for (i, chunk) in self.chunks.iter().enumerate() {
+            let len_i = self.lengths[i] as f32;
+            let mut score = 0.0;
+
+            for word in &query_words {
+                let Some(&tf) = self.term_counts[i].get(word) else {
+                    continue;
+                };
+                let tf = tf as f32;
+
+                score += self.idf(word) * tf * (K1 + 1.0)
+                    / (tf + K1 * (1.0 - B + B * len_i / self.avg_len))
+            }
+
+            if score > 0.0 {
+                scores.push((*chunk, score));
+            }
+        }
+
+        top_k(scores, k)
+            .into_iter()
+            .map(|(chunk, score)| Hit { chunk, score })
+            .collect()
     }
 }
 

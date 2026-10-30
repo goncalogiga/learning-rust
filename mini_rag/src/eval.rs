@@ -30,7 +30,38 @@ pub struct EvalReport {
 // This one function works for BM25, vectors, hybrid, and any retriever you write later,
 // because it only relies on the `Retriever` trait.
 pub fn evaluate<R: Retriever>(retriever: &R, queries: &[LabeledQuery], k: usize) -> EvalReport {
-    todo!("Mission 12")
+    let mut hits = 0;
+    let mut reciprocal_rank_sum = 0.0;
+    let mut misses = Vec::new();
+
+    for q in queries {
+        let results = retriever.search(&q.query, k);
+
+        if let Some(pos) = results
+            .iter()
+            .position(|hit| hit.chunk.doc.id == q.relevant)
+        {
+            hits += 1;
+            reciprocal_rank_sum += 1.0 / (pos + 1) as f32; // rank = pos + 1
+        } else {
+            misses.push(q.query.clone());
+        }
+    }
+
+    let (recall, mrr) = if queries.is_empty() {
+        (0.0, 0.0)
+    } else {
+        let n = queries.len() as f32;
+        (hits as f32 / n, reciprocal_rank_sum / n)
+    };
+
+    EvalReport {
+        name: retriever.name(),
+        k,
+        recall,
+        mrr,
+        misses,
+    }
 }
 
 // MISSION 12b: one line per report, so several reports line up as a table:
@@ -40,7 +71,11 @@ pub fn evaluate<R: Retriever>(retriever: &R, queries: &[LabeledQuery], k: usize)
 // The name is padded to 21 characters (`{:<21}`), and both numbers have 3 decimals (`{:.3}`).
 impl fmt::Display for EvalReport {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        todo!("Mission 12")
+        write!(
+            f,
+            "{:<21} recall@{} {:.3}  MRR {:.3}",
+            self.name, self.k, self.recall, self.mrr
+        )
     }
 }
 
